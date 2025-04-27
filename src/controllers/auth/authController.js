@@ -48,8 +48,47 @@ export const registerUser = async (req, res) => {
 
 //Login user
 export const loginUser = async (req, res) => {
-  const { email, password } = req.res;
+  const { email, password } = req.body;
   try {
+    //validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide required fields",
+      });
+    }
+    //check user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Could not find your email. Please create new account. Thank you",
+      });
+    }
+    //checking password
+    const checkPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!checkPasswordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Incorrect password. Please try again",
+      });
+    }
+    //creating JWT
+    const token = jwt.sign({ id: user._id }, process.env.CLIENT_SECRET_KEY, {
+      expiresIn: "1d",
+    });
+    //removing password before sending bak
+    const { password: pass, ...rest } = user._doc;
+    res
+      .cookie("token", token, { httpOnly: true, secure: false })
+      .status(200)
+      .json({
+        success: true,
+        message: "Logged in successful",
+        user: rest,
+        token: token,
+      });
   } catch (error) {
     console.log(error);
     res.status(500).json({

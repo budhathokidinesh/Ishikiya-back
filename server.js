@@ -10,14 +10,16 @@ import { dbConnect } from "./src/config/dbConfig.js";
 import authRoutes from "./src/routes/auth/authRoute.js";
 
 import adminRoutes from "./src/routes/admin/adminRoutes.js";
+import morgan from "morgan";
 
 //middlewares
 app.use(cors());
 app.use(cookieparser());
 app.use(express.json());
+app.use(morgan("dev"));
 
 //endpoit APIs
-app.use("/api/auth", authRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 app.use("/api/admin", adminRoutes);
 

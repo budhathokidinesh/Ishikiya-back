@@ -97,3 +97,11 @@ export const loginUser = async (req, res) => {
     });
   }
 };
+
+//Logout user
+export const logoutUser = (req, res) => {
+  res.clearCookie("token").status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+};

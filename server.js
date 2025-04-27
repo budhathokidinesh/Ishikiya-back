@@ -4,13 +4,13 @@ const PORT = process.env.PORT || 8000;
 
 import cors from "cors";
 import cookieparser from "cookie-parser";
+import morgan from "morgan";
 import { dbConnect } from "./src/config/dbConfig.js";
 
 //importing routes
 import authRoutes from "./src/routes/auth/authRoute.js";
-
 import adminRoutes from "./src/routes/admin/adminRoutes.js";
-import morgan from "morgan";
+import userRoutes from "./src/routes/user/userRoute.js";
 
 //middlewares
 app.use(cors());
@@ -20,7 +20,7 @@ app.use(morgan("dev"));
 
 //endpoit APIs
 app.use("/api/v1/auth", authRoutes);
-
+app.use("/api/v1/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 
 //this is for health check

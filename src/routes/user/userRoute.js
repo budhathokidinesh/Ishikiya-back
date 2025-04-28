@@ -5,6 +5,7 @@ import {
 } from "../../controllers/user/userController.js";
 import { authMiddleware } from "../../middlewares/authMiddleware.js";
 import { forgotPassword } from "../../controllers/password/forgotPassword.js";
+import { resetPassword } from "../../controllers/password/resetPassword.js";
 
 const router = express.Router();
 
@@ -12,5 +13,6 @@ const router = express.Router();
 router.get("/getUser", authMiddleware, getUserInfo);
 router.put("/updateUser", authMiddleware, updateUser);
 router.post("/forgotPassword", forgotPassword);
+router.post("/resetPassword/:token", resetPassword);
 
 export default router;

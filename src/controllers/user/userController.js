@@ -23,7 +23,36 @@ export const getUserInfo = async (req, res) => {
     console.log(error);
     res.status(500).json({
       success: false,
-      message: "Error occured while fetching users",
+      message: "Error occured while getting user info",
+    });
+  }
+};
+//updating user
+export const updateUser = async (req, res) => {
+  try {
+    const user = await User.findById({ _id: req.user.id });
+    //validation
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    //update
+    const { name, phone } = req.body;
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    //save user
+    await user.save();
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully.",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error occured while updating user",
     });
   }
 };

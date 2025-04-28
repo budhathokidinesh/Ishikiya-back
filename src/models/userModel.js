@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { type } from "os";
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -21,6 +22,12 @@ const UserSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpire: {
+      type: Date,
     },
   },
   {

@@ -158,3 +158,35 @@ export const updateFoodController = async (req, res) => {
     });
   }
 };
+//delete food item
+export const deleteFoodController = async (req, res) => {
+  try {
+    const foodId = req.params.id;
+    //validation of Id
+    if (!foodId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide food id",
+      });
+    }
+    const food = await Food.findById(foodId);
+    //validation of food
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: "Food could not find with this Id",
+      });
+    }
+    await Food.findByIdAndDelete(foodId);
+    res.status(200).json({
+      success: true,
+      message: "Food item is deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error occured while deleting food",
+    });
+  }
+};

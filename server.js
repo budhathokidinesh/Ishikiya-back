@@ -12,6 +12,7 @@ import authRoutes from "./src/routes/auth/authRoute.js";
 import adminRoutes from "./src/routes/admin/adminRoutes.js";
 import userRoutes from "./src/routes/user/userRoute.js";
 import foodRoutes from "./src/routes/food/foodRoute.js";
+import orderRoutes from "./src/routes/order/orderRoute.js";
 
 //middlewares
 app.use(cors());
@@ -24,6 +25,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 //end points APIs(food)
 app.use("/api/v1/food", foodRoutes);
+//end points for order
+app.use("/api/v1/order", orderRoutes);
 app.use("/api/admin", adminRoutes);
 
 //this is for health check

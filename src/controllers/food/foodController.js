@@ -98,3 +98,63 @@ export const getSingleFood = async (req, res) => {
     });
   }
 };
+//update food item
+export const updateFoodController = async (req, res) => {
+  try {
+    const foodId = req.params.id;
+    //validation of Id
+    if (!foodId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide food id",
+      });
+    }
+    const food = await Food.findById(foodId);
+    //validation of food
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: "Food could not find with this Id",
+      });
+    }
+    const {
+      title,
+      description,
+      category,
+      price,
+      imageUrl,
+      salePrice,
+      code,
+      isAvailable,
+      rating,
+      ratingCount,
+    } = req.body;
+    const updatedFood = await Food.findByIdAndUpdate(
+      foodId,
+      {
+        title,
+        description,
+        category,
+        price,
+        imageUrl,
+        salePrice,
+        code,
+        isAvailable,
+        rating,
+        ratingCount,
+      },
+      { new: true }
+    );
+    res.status(201).json({
+      success: true,
+      message: "Food item is updated successfully",
+      updatedFood,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error occured while updating food",
+    });
+  }
+};

@@ -11,6 +11,7 @@ import { dbConnect } from "./src/config/dbConfig.js";
 import authRoutes from "./src/routes/auth/authRoute.js";
 import adminRoutes from "./src/routes/admin/adminRoutes.js";
 import userRoutes from "./src/routes/user/userRoute.js";
+import foodRoutes from "./src/routes/food/foodRoute.js";
 
 //middlewares
 app.use(cors());
@@ -18,9 +19,11 @@ app.use(cookieparser());
 app.use(express.json());
 app.use(morgan("dev"));
 
-//endpoit APIs
+//endpoit APIs(auth)
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
+//end points APIs(food)
+app.use("/api/v1/food", foodRoutes);
 app.use("/api/admin", adminRoutes);
 
 //this is for health check

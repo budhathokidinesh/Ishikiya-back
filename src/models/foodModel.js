@@ -1,4 +1,26 @@
 import mongoose from "mongoose";
+//this is review schema
+const reviewSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5,
+  },
+  comment: {
+    type: String,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+//this is food model
 const FoodSchema = new mongoose.Schema(
   {
     title: {
@@ -21,25 +43,12 @@ const FoodSchema = new mongoose.Schema(
       default:
         "https://images.pexels.com/photos/1123250/pexels-photo-1123250.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
     },
-    salePrice: {
-      type: Number,
-    },
-    code: {
-      type: String,
-    },
+
     isAvailable: {
       type: Boolean,
       default: true,
     },
-    rating: {
-      type: Number,
-      default: 5,
-      min: 1,
-      max: 5,
-    },
-    ratingCount: {
-      type: Number,
-    },
+    reviews: [reviewSchema],
   },
   {
     timestamps: true,

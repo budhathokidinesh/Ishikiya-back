@@ -15,13 +15,24 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      type: Number,
+    },
     role: {
       type: String,
+      enum: ["user", "admin"],
       default: "user",
     },
     phone: {
       type: String,
       required: true,
+    },
+    profileImage: {
+      type: String,
     },
     resetPasswordToken: {
       type: String,

@@ -1,7 +1,7 @@
 import express from "express";
 import {
+  addFoodController,
   deleteFoodController,
-  foodController,
   getAllFoodController,
   getSingleFood,
   updateFoodController,
@@ -11,7 +11,7 @@ import { adminMiddleware } from "../../middlewares/adminMiddleware.js";
 
 const router = express.Router();
 //add food
-router.post("/addFood", authMiddleware, foodController);
+router.post("/addFood", authMiddleware, addFoodController);
 //get all foods
 router.get("/getAllFoods", getAllFoodController);
 

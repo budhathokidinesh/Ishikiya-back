@@ -1,19 +1,9 @@
 import Food from "../../models/foodModel.js";
 
 //adding food controller
-export const foodController = async (req, res) => {
-  const {
-    title,
-    description,
-    category,
-    price,
-    imageUrl,
-    salePrice,
-    code,
-    isAvailable,
-    rating,
-    ratingCount,
-  } = req.body;
+export const addFoodController = async (req, res) => {
+  const { title, description, category, price, imageUrl, isAvailable } =
+    req.body;
   try {
     //validation
     if (!title || !description || !price) {
@@ -28,11 +18,7 @@ export const foodController = async (req, res) => {
       category,
       price,
       imageUrl,
-      salePrice,
-      code,
       isAvailable,
-      rating,
-      ratingCount,
     });
     await newFood.save();
     res.status(201).json({

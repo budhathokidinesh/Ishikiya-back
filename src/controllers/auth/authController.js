@@ -1,13 +1,15 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../../models/userModel.js";
+import otpGenerator from "otp-generator";
+import nodemailer from "nodemailer";
 
 //Register user
 export const registerUser = async (req, res) => {
-  const { name, email, password, role, phone } = req.body;
+  const { name, email, password, role, phone, profileImage } = req.body;
   try {
     //validation
-    if (!name || !email || !password || !role || !phone) {
+    if (!name || !email || !password || !phone) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required field",
@@ -19,23 +21,60 @@ export const registerUser = async (req, res) => {
       return res.status(409).json({
         success: false,
         message:
-          "Email already registerd with this email. Please provide new email",
+          "Email already registered with this email. Please provide new email",
+        code: "EMAIL_EXISTS",
       });
     }
     //hasing the password
     const hashedPassword = await bcrypt.hash(password, 12);
+    //create otp
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      upperCaseAlphabets: false,
+      lowerCaseAlphabets: false,
+      specialChars: false,
+    });
+
     //create new user
     const newUser = new User({
       name,
       email,
+      otp,
       password: hashedPassword,
-      role,
       phone,
+      role,
+      profileImage,
     });
     await newUser.save();
-    res.status(201).send({
-      success: true,
-      message: "User is registered successfully",
+    //this is for sending otp for verification email
+    //transporter
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      secure: false,
+    });
+    const mailOptions = {
+      from: '"Restaurant Support" <physmarika@gmail.com>',
+      to: email,
+      subject: "otp for email verification",
+      text: `Your verification otp is ${otp}`,
+    };
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        return res.status(500).json({
+          success: false,
+          message: "Error occured while sending email",
+        });
+      }
+      return res.status(201).json({
+        success: true,
+        message: "Otp is sent to your email",
+      });
     });
   } catch (error) {
     console.log(error);
@@ -43,6 +82,30 @@ export const registerUser = async (req, res) => {
       success: false,
       message: "Error occured while registering the user",
     });
+  }
+};
+
+//Verify OTP
+export const verifyOtp = async (req, res) => {
+  const { otp } = req.body;
+  try {
+    const user = await User.findOne({ otp });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    await user.save();
+    return res.status(200).json({ success: true, message: "OTP verified" });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ success: false, message: "OTP verification failed" });
   }
 };
 
@@ -64,6 +127,14 @@ export const loginUser = async (req, res) => {
         success: false,
         message:
           "Could not find your email. Please create new account. Thank you",
+      });
+    }
+    // checking user is verified or not
+    if (!user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account is not verified. Please verify your email before logging in",
       });
     }
     //checking password

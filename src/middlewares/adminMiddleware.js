@@ -6,7 +6,7 @@ export const adminMiddleware = async (req, res, next) => {
 
     const user = await User.findById(req.user?.id);
     console.log("User role:", user?.role);
-    if (user?.role !== "Admin") {
+    if (user?.role !== "admin") {
       return res.status(401).json({
         success: false,
         message: "Only admin user",

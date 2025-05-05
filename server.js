@@ -13,9 +13,15 @@ import adminRoutes from "./src/routes/admin/adminRoutes.js";
 import userRoutes from "./src/routes/user/userRoute.js";
 import foodRoutes from "./src/routes/food/foodRoute.js";
 import orderRoutes from "./src/routes/order/orderRoute.js";
+import imageRoutes from "./src/routes/image/imageRoute.js";
 
 //middlewares
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(cookieparser());
 app.use(express.json());
 app.use(morgan("dev"));
@@ -27,6 +33,9 @@ app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/food", foodRoutes);
 //end points for order
 app.use("/api/v1/order", orderRoutes);
+
+//end poins for image
+app.use("/api/v1/all", imageRoutes);
 app.use("/api/admin", adminRoutes);
 
 //this is for health check

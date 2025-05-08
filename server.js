@@ -14,6 +14,7 @@ import userRoutes from "./src/routes/user/userRoute.js";
 import foodRoutes from "./src/routes/food/foodRoute.js";
 import orderRoutes from "./src/routes/order/orderRoute.js";
 import imageRoutes from "./src/routes/image/imageRoute.js";
+import cartRoutes from "./src/routes/cart/cartRoutes.js";
 
 //middlewares
 app.use(
@@ -31,6 +32,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 //end points APIs(food)
 app.use("/api/v1/food", foodRoutes);
+//end points for cart items
+app.use("/api/v1/cart", cartRoutes);
 //end points for order
 app.use("/api/v1/order", orderRoutes);
 

@@ -30,23 +30,29 @@ export const getUserInfo = async (req, res) => {
 //updating user
 export const updateUser = async (req, res) => {
   try {
-    const user = await User.findById({ _id: req.user.id });
+    const { name, phone, imageUrl } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        ...(name && { name }),
+        ...(phone && { phone }),
+        ...(imageUrl && { imageUrl }),
+      },
+      { new: true, runValidators: true }
+    );
     //validation
-    if (!user) {
+    if (!updatedUser) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
-    //update
-    const { name, phone } = req.body;
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
-    //save user
-    await user.save();
+
     res.status(200).json({
       success: true,
       message: "User updated successfully.",
+      user: updatedUser,
     });
   } catch (error) {
     console.log(error);

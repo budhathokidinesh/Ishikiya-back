@@ -52,7 +52,7 @@ export const addToCart = async (req, res) => {
     }
     //checking if food is already in the cart
     const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === productId
+      (item) => item.food.toString() === foodId
     );
 
     if (itemIndex > -1) {
@@ -63,16 +63,17 @@ export const addToCart = async (req, res) => {
     } else {
       //food not in cart, add new item
       cart.items.push({
-        product: productId,
+        food: foodId,
         quantity,
-        price: product.price,
-        total: product.price * quantity,
+        price: food.price,
+        total: food.price * quantity,
       });
     }
     await cart.save();
     res.status(200).json({
       success: true,
       message: "Food added to cart successfully",
+      cart,
     });
   } catch (error) {
     console.log(error);
@@ -126,7 +127,7 @@ export const updateCartItem = async (req, res) => {
 
 //Removing items from the cart
 export const removeFromCart = async (req, res) => {
-  const { productId } = req.body;
+  const { foodId } = req.body;
   try {
     const cart = await Cart.findOne({ user: req.user.id });
     if (!cart) {
@@ -136,7 +137,7 @@ export const removeFromCart = async (req, res) => {
       });
     }
     cart.items = cart.items.filter(
-      (item) => item.product.toString() !== productId
+      (item) => item.product.toString() !== foodId
     );
     await cart.save();
     res.status(200).json({

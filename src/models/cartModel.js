@@ -51,4 +51,4 @@ cartSchema.pre("save", function (next) {
   this.totalPrice = this.items.reduce((acc, item) => acc + item.total, 0);
   next();
 });
-export default mongoose.modelNames("Cart", cartSchema);
+export default mongoose.model("Cart", cartSchema);

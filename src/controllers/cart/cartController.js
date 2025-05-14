@@ -70,10 +70,12 @@ export const addToCart = async (req, res) => {
       });
     }
     await cart.save();
+    //populae the  food before sending the response
+    const populatedCart = await Cart.findById(cart._id).populate("items.food");
     res.status(200).json({
       success: true,
       message: "Food added to cart successfully",
-      cart,
+      cart: populatedCart,
     });
   } catch (error) {
     console.log(error);
@@ -98,7 +100,7 @@ export const updateCartItem = async (req, res) => {
     }
 
     const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === foodId
+      (item) => item.food.toString() === foodId
     );
     if (itemIndex > -1) {
       //food already in the cart, update quantity
@@ -112,9 +114,12 @@ export const updateCartItem = async (req, res) => {
       });
     }
     await cart.save();
+    //populae the  food before sending the response
+    const populatedCart = await Cart.findById(cart._id).populate("items.food");
     res.status(200).json({
       success: true,
       message: "Food item updated successfully",
+      cart: populatedCart,
     });
   } catch (error) {
     console.log(error);
@@ -136,14 +141,14 @@ export const removeFromCart = async (req, res) => {
         message: "Cart not found",
       });
     }
-    cart.items = cart.items.filter(
-      (item) => item.product.toString() !== foodId
-    );
+    cart.items = cart.items.filter((item) => item.food.toString() !== foodId);
     await cart.save();
+    //populae the  food before sending the response
+    const populatedCart = await Cart.findById(cart._id).populate("items.food");
     res.status(200).json({
       success: true,
       message: "Item removed from cart",
-      cart,
+      cart: populatedCart,
     });
   } catch (error) {
     console.log(error);

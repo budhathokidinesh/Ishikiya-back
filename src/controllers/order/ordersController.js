@@ -1,19 +1,18 @@
 import Order from "../../models/orderModel.js";
 //placing order
 export const orderController = async (req, res) => {
-  const { cart } = req.body;
+  const { cart, paymentMethod, transitionId } = req.body;
+  const userId = req.user.id;
   try {
-    if (!cart) {
+    if (!cart || cart.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Please provide food cart or payment method",
+        message: "Cart can not be empty",
       });
     }
     //calculate total price
-    let total = 0;
-    cart.map((i) => {
-      total += i.price;
-    });
+    let totalAmount = 0;
+    const orderItems = [];
     const newOrder = new Order({
       foods: cart,
       payment: total,

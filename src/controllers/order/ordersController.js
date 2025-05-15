@@ -1,4 +1,5 @@
 import Order from "../../models/orderModel.js";
+import Food from "../../models/foodModel.js";
 //placing order
 export const orderController = async (req, res) => {
   const { cart, paymentMethod, transitionId } = req.body;
@@ -13,16 +14,38 @@ export const orderController = async (req, res) => {
     //calculate total price
     let totalAmount = 0;
     const orderItems = [];
-    const newOrder = new Order({
-      foods: cart,
-      payment: total,
-      buyer: req.body.id,
+    for (const item of cart) {
+      const food = await Food.findById(item.foodId);
+      if (!food) {
+        return res.status(404).json({
+          success: false,
+          message: `Food item with ID ${item.foodId} not found`,
+        });
+      }
+      orderItems.push({
+        food: item.foodId,
+        quantity: item.quantity,
+        price: food.price,
+      });
+
+      totalAmount += item.quantity * food.price;
+    }
+    totalAmount = parseFloat(totalAmount.toFixed(2));
+    const newOrder = await Order.create({
+      items: orderItems,
+      totalAmount,
+      payment: {
+        method: paymentMethod || "Cash",
+        transitionId: transitionId || null,
+        status: paymentMethod ? "Paid" : "Pending",
+      },
+      buyer: userId,
     });
     await newOrder.save();
     res.status(201).json({
       success: true,
       message: "Order placed successfully",
-      newOrder,
+      order: newOrder,
     });
   } catch (error) {
     console.log(error);
@@ -36,6 +59,7 @@ export const orderController = async (req, res) => {
 export const orderStatusController = async (req, res) => {
   try {
     const orderId = req.params.id;
+    const { status } = req.body;
     //validation
     if (!orderId) {
       return res.status(404).json({
@@ -43,21 +67,78 @@ export const orderStatusController = async (req, res) => {
         message: "Please provide orderId",
       });
     }
-    const { status } = req.body;
+
     const order = await Order.findByIdAndUpdate(
       orderId,
       { status },
       { new: true }
     );
+    //validation for order
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
     res.status(201).json({
       success: true,
       message: "Order status is updated successfuly",
+      order,
     });
   } catch (error) {
     console.log(error);
     res.status(500).json({
       success: false,
       message: "Error occured while changing order status",
+    });
+  }
+};
+
+//Ths is for fetching the Order History for loggedin user
+export const fetchOrderHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const orders = await Order.find({ buyer: userId })
+      .populate("items.food", "title imageUrl price")
+      .sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      message: "Order history fetched successfully",
+      orders,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error Occured while fetching order history",
+    });
+  }
+};
+//this is for fetching all the order history for admin
+export const fetchAllOrdersAdmin = async (req, res) => {
+  try {
+    //admin validation
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only",
+      });
+    }
+    const orders = await Order.find()
+      .populate("foods", "title imageUrl price")
+      .populate("buyer", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      message: "All orders fetched successfully",
+      orders,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error Occured while fetching order history",
     });
   }
 };

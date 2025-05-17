@@ -1,8 +1,11 @@
 import Order from "../../models/orderModel.js";
 import Food from "../../models/foodModel.js";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 //placing order
 export const orderController = async (req, res) => {
-  const { cart, paymentMethod, transitionId } = req.body;
+  const { cart, paymentMethod, transitionId, stripePaymentId } = req.body;
   const userId = req.user.id;
   try {
     if (!cart || cart.length === 0) {
@@ -31,17 +34,38 @@ export const orderController = async (req, res) => {
       totalAmount += item.quantity * food.price;
     }
     totalAmount = parseFloat(totalAmount.toFixed(2));
+
+    //this is for stripe payment
+    let paymentTransitionId = transitionId || null;
+    if (paymentMethod === "Stripe") {
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(totalAmount * 100),
+          currency: "aud",
+          payment_method: stripePaymentId,
+          confirm: true,
+        });
+        paymentTransitionId = paymentIntent.id;
+      } catch (stripeError) {
+        return res.status(400).json({
+          success: false,
+          message: "Stripe payment failed",
+          error: stripeError.message,
+        });
+      }
+    }
+    // this is for other type of order
     const newOrder = await Order.create({
       items: orderItems,
       totalAmount,
       payment: {
         method: paymentMethod || "Cash",
         transitionId: transitionId || null,
-        status: paymentMethod ? "Paid" : "Pending",
+        status: paymentMethod === "Stripe" ? "Paid" : "Pending",
       },
       buyer: userId,
     });
-    await newOrder.save();
+
     res.status(201).json({
       success: true,
       message: "Order placed successfully",

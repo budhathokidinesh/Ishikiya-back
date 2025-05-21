@@ -5,77 +5,108 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 //placing order
 export const orderController = async (req, res) => {
-  const { cart, paymentMethod, transitionId, stripePaymentId } = req.body;
+  const { cart, paymentMethod } = req.body;
   const userId = req.user.id;
+
   try {
     if (!cart || cart.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Cart can not be empty",
+        message: "Cart cannot be empty",
       });
     }
-    //calculate total price
+
+    // Calculate total and prepare order items
     let totalAmount = 0;
     const orderItems = [];
+    const stripeLineItems = [];
+
     for (const item of cart) {
       const food = await Food.findById(item.foodId);
       if (!food) {
         return res.status(404).json({
           success: false,
-          message: `Food item with ID ${item.foodId} not found`,
+          message: `Food item not found: ${item.foodId}`,
         });
       }
+
+      const itemTotal = item.quantity * food.price;
+      totalAmount += itemTotal;
+
       orderItems.push({
         food: item.foodId,
         quantity: item.quantity,
         price: food.price,
       });
 
-      totalAmount += item.quantity * food.price;
-    }
-    totalAmount = parseFloat(totalAmount.toFixed(2));
-
-    //this is for stripe payment
-    let paymentTransitionId = transitionId || null;
-    if (paymentMethod === "Stripe") {
-      try {
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: Math.round(totalAmount * 100),
+      stripeLineItems.push({
+        price_data: {
           currency: "aud",
-          payment_method: stripePaymentId,
-          confirm: true,
-        });
-        paymentTransitionId = paymentIntent.id;
-      } catch (stripeError) {
-        return res.status(400).json({
-          success: false,
-          message: "Stripe payment failed",
-          error: stripeError.message,
-        });
-      }
+          product_data: {
+            name: food.title,
+          },
+          unit_amount: Math.round(food.price * 100), // Convert to cents
+        },
+        quantity: item.quantity,
+      });
     }
-    // this is for other type of order
+
+    // For Stripe payments
+    if (paymentMethod === "Stripe") {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: stripeLineItems,
+        mode: "payment",
+        success_url: `${process.env.FRONTEND_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+        metadata: {
+          userId: userId.toString(),
+          cart: JSON.stringify(cart),
+        },
+      });
+
+      // Create order with pending status
+      const newOrder = await Order.create({
+        items: orderItems,
+        totalAmount,
+        payment: {
+          method: "Stripe",
+          status: "Pending",
+          transitionId: session.payment_intent || null,
+        },
+        buyer: userId,
+        status: "Order Placed",
+      });
+
+      return res.status(200).json({
+        success: true,
+        sessionId: session.id, // Include sessionId
+        url: session.url, // Include Stripe URL
+        message: "Stripe session created",
+      });
+    }
+
+    // For cash payments
     const newOrder = await Order.create({
       items: orderItems,
       totalAmount,
       payment: {
-        method: paymentMethod || "Cash",
-        transitionId: transitionId || null,
-        status: paymentMethod === "Stripe" ? "Paid" : "Pending",
+        method: "Cash",
+        status: "Pending",
       },
       buyer: userId,
+      status: "Order Placed",
     });
 
     res.status(201).json({
       success: true,
-      message: "Order placed successfully",
       order: newOrder,
     });
   } catch (error) {
-    console.log(error);
+    console.error("Order error:", error);
     res.status(500).json({
       success: false,
-      message: "Error occured while placing order",
+      message: error.message || "Order processing failed",
     });
   }
 };
@@ -94,7 +125,7 @@ export const orderStatusController = async (req, res) => {
 
     const order = await Order.findByIdAndUpdate(
       orderId,
-      { status },
+      { status, "payment.status": status },
       { new: true }
     );
     //validation for order
@@ -107,7 +138,7 @@ export const orderStatusController = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Order status is updated successfuly",
-      order,
+      order: order,
     });
   } catch (error) {
     console.log(error);
@@ -141,17 +172,20 @@ export const fetchOrderHistory = async (req, res) => {
 //this is for fetching all the order history for admin
 export const fetchAllOrdersAdmin = async (req, res) => {
   try {
-    //admin validation
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admins only",
-      });
-    }
     const orders = await Order.find()
-      .populate("foods", "title imageUrl price")
-      .populate("buyer", "name email")
-      .sort({ createdAt: -1 });
+      .populate({
+        path: "items.food",
+        select: "title imageUrl price",
+        model: "Food",
+      })
+      .populate({
+        path: "buyer",
+        select: "name email",
+        model: "User",
+        options: { strictPopulate: false },
+      })
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,

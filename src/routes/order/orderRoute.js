@@ -1,6 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../../middlewares/authMiddleware.js";
 import {
+  fetchAllOrdersAdmin,
   fetchOrderHistory,
   orderController,
   orderStatusController,
@@ -24,7 +25,7 @@ router.get(
   "/admin/history",
   authMiddleware,
   adminMiddleware,
-  fetchOrderHistory
+  fetchAllOrdersAdmin
 );
 
 export default router;

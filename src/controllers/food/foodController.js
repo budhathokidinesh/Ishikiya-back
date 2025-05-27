@@ -176,3 +176,48 @@ export const deleteFoodController = async (req, res) => {
     });
   }
 };
+
+//this is for food review
+export const addFoodReviewController = async (req, res) => {
+  const { foodId } = req.params;
+  const { rating, comment } = req.body;
+  try {
+    const food = await Food.findById(foodId);
+    //validation
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: "Food not found",
+      });
+    }
+    //check already reviewed or not
+    const alreadyReviewed = food.reviews.find(
+      (rev) => rev.user.toString() === req.user._id.toString()
+    );
+    if (alreadyReviewed) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already reviewed this food",
+      });
+    }
+    const review = {
+      user: req.user._id,
+      rating: Number(rating),
+      comment,
+    };
+    food.reviews.push(review);
+    await food.save();
+
+    res.status(201).json({
+      message: true,
+      message: "Review added successfully",
+      reviews: food.reviews,
+    });
+  } catch (error) {
+    console.log("Reviews Error", error);
+    res.status(500).json({
+      success: false,
+      message: "Error adding reviews",
+    });
+  }
+};

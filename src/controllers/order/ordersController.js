@@ -17,10 +17,7 @@ export const orderController = async (req, res) => {
     }
 
     // Calculate total and prepare order items
-    let totalAmount = 0;
-    const orderItems = [];
     const stripeLineItems = [];
-
     for (const item of cart) {
       const food = await Food.findById(item.foodId);
       if (!food) {
@@ -29,15 +26,6 @@ export const orderController = async (req, res) => {
           message: `Food item not found: ${item.foodId}`,
         });
       }
-
-      const itemTotal = item.quantity * food.price;
-      totalAmount += itemTotal;
-
-      orderItems.push({
-        food: item.foodId,
-        quantity: item.quantity,
-        price: food.price,
-      });
 
       stripeLineItems.push({
         price_data: {
@@ -52,55 +40,24 @@ export const orderController = async (req, res) => {
     }
 
     // For Stripe payments
-    if (paymentMethod === "Stripe") {
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: stripeLineItems,
-        mode: "payment",
-        success_url: `${process.env.FRONTEND_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL}/cancel`,
-        metadata: {
-          userId: userId.toString(),
-          cart: JSON.stringify(cart),
-        },
-      });
 
-      // Create order with pending status
-      const newOrder = await Order.create({
-        items: orderItems,
-        totalAmount,
-        payment: {
-          method: "Stripe",
-          status: "Pending",
-          transitionId: session.payment_intent || null,
-        },
-        buyer: userId,
-        status: "Order Placed",
-      });
-
-      return res.status(200).json({
-        success: true,
-        sessionId: session.id, // Include sessionId
-        url: session.url, // Include Stripe URL
-        message: "Stripe session created",
-      });
-    }
-
-    // For cash payments
-    const newOrder = await Order.create({
-      items: orderItems,
-      totalAmount,
-      payment: {
-        method: "Cash",
-        status: "Pending",
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: stripeLineItems,
+      mode: "payment",
+      success_url: `${process.env.FRONTEND_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+      metadata: {
+        userId: userId.toString(),
+        cart: JSON.stringify(cart),
       },
-      buyer: userId,
-      status: "Order Placed",
     });
 
-    res.status(201).json({
+    return res.status(200).json({
       success: true,
-      order: newOrder,
+      sessionId: session.id, // Include sessionId
+      url: session.url, // Include Stripe URL
+      message: "Stripe session created",
     });
   } catch (error) {
     console.error("Order error:", error);
@@ -114,7 +71,7 @@ export const orderController = async (req, res) => {
 export const orderStatusController = async (req, res) => {
   try {
     const orderId = req.params.id;
-    const { status } = req.body;
+    const { orderStatus, paymentStatus } = req.body;
     //validation
     if (!orderId) {
       return res.status(404).json({
@@ -122,14 +79,15 @@ export const orderStatusController = async (req, res) => {
         message: "Please provide orderId",
       });
     }
+    const updateData = {};
+    if (orderStatus) updateData.orderStatus = orderStatus;
+    if (paymentStatus) updateData["payment.status"] = paymentStatus;
 
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      { status, "payment.status": status },
-      { new: true }
-    );
+    const updatedOrder = await Order.findByIdAndUpdate(orderId, updateData, {
+      new: true,
+    });
     //validation for order
-    if (!order) {
+    if (!updatedOrder) {
       return res.status(404).json({
         success: false,
         message: "Order not found",
@@ -138,7 +96,7 @@ export const orderStatusController = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Order status is updated successfuly",
-      order: order,
+      order: updatedOrder,
     });
   } catch (error) {
     console.log(error);

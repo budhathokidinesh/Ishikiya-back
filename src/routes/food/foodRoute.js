@@ -1,6 +1,7 @@
 import express from "express";
 import {
   addFoodController,
+  addFoodReviewController,
   deleteFoodController,
   getAllFoodController,
   getSingleFood,
@@ -31,5 +32,6 @@ router.delete(
   adminMiddleware,
   deleteFoodController
 );
+router.post("/:foodId/reviews", authMiddleware, addFoodReviewController);
 
 export default router;

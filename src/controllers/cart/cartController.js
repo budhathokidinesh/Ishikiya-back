@@ -5,7 +5,8 @@ import Food from "../../models/foodModel.js";
 export const getCart = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user.id }).populate(
-      "items.food"
+      "items.food",
+      "title imageUrl price"
     );
     if (!cart) {
       return res.status(404).json({
@@ -69,9 +70,18 @@ export const addToCart = async (req, res) => {
         total: food.price * quantity,
       });
     }
+    cart.totalQuantity = cart.items.reduce(
+      (acc, item) => acc + item.quantity,
+      0
+    );
+    cart.totalPrice = cart.items.reduce((acc, item) => acc + item.total, 0);
+
     await cart.save();
     //populae the  food before sending the response
-    const populatedCart = await Cart.findById(cart._id).populate("items.food");
+    const populatedCart = await Cart.findById(cart._id).populate(
+      "items.food",
+      "title imageUrl price"
+    );
     res.status(200).json({
       success: true,
       message: "Food added to cart successfully",
@@ -113,9 +123,18 @@ export const updateCartItem = async (req, res) => {
         message: "Product not found in cart",
       });
     }
+    cart.totalQuantity = cart.items.reduce(
+      (acc, item) => acc + item.quantity,
+      0
+    );
+    cart.totalPrice = cart.items.reduce((acc, item) => acc + item.total, 0);
+
     await cart.save();
     //populae the  food before sending the response
-    const populatedCart = await Cart.findById(cart._id).populate("items.food");
+    const populatedCart = await Cart.findById(cart._id).populate(
+      "items.food",
+      "title imageUrl price"
+    );
     res.status(200).json({
       success: true,
       message: "Food item updated successfully",
@@ -142,6 +161,12 @@ export const removeFromCart = async (req, res) => {
       });
     }
     cart.items = cart.items.filter((item) => item.food.toString() !== foodId);
+    cart.totalQuantity = cart.items.reduce(
+      (acc, item) => acc + item.quantity,
+      0
+    );
+    cart.totalPrice = cart.items.reduce((acc, item) => acc + item.total, 0);
+
     await cart.save();
     //populae the  food before sending the response
     const populatedCart = await Cart.findById(cart._id).populate("items.food");

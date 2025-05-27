@@ -15,6 +15,7 @@ import foodRoutes from "./src/routes/food/foodRoute.js";
 import orderRoutes from "./src/routes/order/orderRoute.js";
 import imageRoutes from "./src/routes/image/imageRoute.js";
 import cartRoutes from "./src/routes/cart/cartRoutes.js";
+import webhookRoute from "./src/routes/webhook/webhookRoute.js";
 
 //middlewares
 app.use(
@@ -24,7 +25,14 @@ app.use(
   })
 );
 app.use(cookieparser());
-app.use(express.json());
+//for webhook
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/v1/webhook") {
+    next(); // skip express.json() for webhook
+  } else {
+    express.json()(req, res, next);
+  }
+});
 app.use(morgan("dev"));
 
 //endpoit APIs(auth)
@@ -37,9 +45,13 @@ app.use("/api/v1/cart", cartRoutes);
 //end points for order
 app.use("/api/v1/order", orderRoutes);
 
-//end poins for image
-app.use("/api/v1/all", imageRoutes);
+//end points for admin
 app.use("/api/admin", adminRoutes);
+
+//end point for image
+app.use("/api/v1/all", imageRoutes);
+//end point for webhook
+app.use("/api/v1/webhook", webhookRoute);
 
 //this is for health check
 app.get("/", (req, res) => {

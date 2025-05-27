@@ -24,17 +24,21 @@ const OrderSchema = new mongoose.Schema(
     payment: {
       method: { type: String, default: "Cash" },
       transitionId: { type: String },
-      status: { type: String, default: "Pending" },
+      status: {
+        type: String,
+        enum: ["Pending", "Processing", "Paid", "Failed", "Refunded"],
+        default: "Pending",
+      },
     },
     buyer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    status: {
+    orderStatus: {
       type: String,
       enum: ["Order Placed", "Processing", "Ready", "Completed", "Cancelled"],
-      default: "Order placed",
+      default: "Order Placed",
     },
   },
   {

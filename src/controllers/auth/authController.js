@@ -152,7 +152,12 @@ export const loginUser = async (req, res) => {
     //removing password before sending bak
     const { password: pass, ...rest } = user._doc;
     res
-      .cookie("token", token, { httpOnly: true, secure: false })
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "Strict",
+        path: "/",
+      })
       .status(200)
       .json({
         success: true,
@@ -171,7 +176,14 @@ export const loginUser = async (req, res) => {
 
 //Logout user
 export const logoutUser = (req, res) => {
-  res.clearCookie("token").status(200).json({
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: false,
+    path: "/",
+    sameSite: "Strict",
+  });
+
+  res.json({
     success: true,
     message: "Logged out successfully",
   });

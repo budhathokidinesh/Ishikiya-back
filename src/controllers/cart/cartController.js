@@ -194,11 +194,17 @@ export const clearCart = async (req, res) => {
         message: "Cart not found",
       });
     }
-    cart.items = [];
-    cart.totalQuantity = 0;
-    cart.totalPrice = 0;
-    await cart.save();
-
+    await Cart.findOneAndUpdate(
+      { user: req.user.id },
+      {
+        $set: {
+          items: [],
+          totalQuantity: 0,
+          totalPrice: 0,
+        },
+      },
+      { new: true }
+    );
     res.status(200).json({
       success: true,
       message: "Cart cleared successfully",

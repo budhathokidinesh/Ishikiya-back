@@ -5,6 +5,7 @@ import Food from "../../models/foodModel.js";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const stripeWebhookHandler = async (req, res) => {
+  console.log("➡️ Webhook received");
   const sig = req.headers["stripe-signature"];
   let event;
 

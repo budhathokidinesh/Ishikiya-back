@@ -63,7 +63,10 @@ export const getSingleFood = async (req, res) => {
         message: "Please provide Id",
       });
     }
-    const food = await Food.findById(foodId);
+    const food = await Food.findById(foodId).populate({
+      path: "reviews.user",
+      select: "name",
+    });
     //validation for food
     if (!food) {
       return res.status(404).json({
@@ -112,8 +115,6 @@ export const updateFoodController = async (req, res) => {
       salePrice,
       code,
       isAvailable,
-      rating,
-      ratingCount,
     } = req.body;
     const updatedFood = await Food.findByIdAndUpdate(
       foodId,
@@ -126,8 +127,6 @@ export const updateFoodController = async (req, res) => {
         salePrice,
         code,
         isAvailable,
-        rating,
-        ratingCount,
       },
       { new: true }
     );
@@ -180,7 +179,7 @@ export const deleteFoodController = async (req, res) => {
 //this is for food review
 export const addFoodReviewController = async (req, res) => {
   const { foodId } = req.params;
-  const { rating, comment } = req.body;
+  const { comment } = req.body;
   try {
     const food = await Food.findById(foodId);
     //validation
@@ -202,7 +201,6 @@ export const addFoodReviewController = async (req, res) => {
     }
     const review = {
       user: req.user._id,
-      rating: Number(rating),
       comment,
     };
     food.reviews.push(review);
@@ -211,7 +209,7 @@ export const addFoodReviewController = async (req, res) => {
     res.status(201).json({
       message: true,
       message: "Review added successfully",
-      reviews: food.reviews,
+      food,
     });
   } catch (error) {
     console.log("Reviews Error", error);

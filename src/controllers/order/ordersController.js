@@ -138,7 +138,7 @@ export const fetchAllOrdersAdmin = async (req, res) => {
       })
       .populate({
         path: "buyer",
-        select: "name email",
+        select: "name email phone",
         model: "User",
         options: { strictPopulate: false },
       })

@@ -1,68 +1,79 @@
 import Cart from "../../models/cartModel.js";
 import Food from "../../models/foodModel.js";
 
-//Get cart items
+// Get cart
 export const getCart = async (req, res) => {
-  try {
-    const cart = await Cart.findOne({ user: req.user.id }).populate(
-      "items.food",
-      "title imageUrl price"
-    );
-    if (!cart) {
-      return res.status(404).json({
+  const userId = req.user?.id;
+  const guestId = req.query.guestId;
+
+  if (!userId && !guestId) {
+    return res
+      .status(401)
+      .json({
         success: false,
-        message: "Cart not found",
+        message: "Unauthorized: missing user ID or guest ID",
       });
+  }
+
+  try {
+    const cart = await Cart.findOne(
+      userId ? { user: userId } : { guestId }
+    ).populate("items.food", "title imageUrl price");
+
+    if (!cart) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Cart not found" });
     }
-    res.status(200).json({
-      success: true,
-      cart,
-    });
+
+    res.status(200).json({ success: true, cart });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      success: false,
-      message: "Error occured while fetching the cart",
-    });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error fetching cart" });
   }
 };
 
-//Add item to cart
+// Add to cart
 export const addToCart = async (req, res) => {
-  const { foodId, quantity } = req.body;
+  const userId = req.user?.id;
+  const { foodId, quantity, guestId } = req.body;
+
+  if (!userId && !guestId) {
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: "Unauthorized: missing user ID or guest ID",
+      });
+  }
+
   try {
-    //validation
     const food = await Food.findById(foodId);
     if (!food) {
-      return res.status(404).json({
-        success: false,
-        message: "Food not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Food not found" });
     }
-    //get user cart and create a new one
-    let cart = await Cart.findOne({ user: req.user.id });
 
-    //validation
+    let cart = await Cart.findOne(userId ? { user: userId } : { guestId });
+
     if (!cart) {
       cart = await Cart.create({
-        user: req.user.id,
+        user: userId || undefined,
+        guestId: guestId || undefined,
         items: [],
-        totalQuantity: 0,
-        totalPrice: 0,
       });
     }
-    //checking if food is already in the cart
+
     const itemIndex = cart.items.findIndex(
       (item) => item.food.toString() === foodId
     );
 
     if (itemIndex > -1) {
-      //food already in the cart, update quantity
       cart.items[itemIndex].quantity += quantity;
       cart.items[itemIndex].total =
         cart.items[itemIndex].quantity * cart.items[itemIndex].price;
     } else {
-      //food not in cart, add new item
       cart.items.push({
         food: foodId,
         quantity,
@@ -70,151 +81,154 @@ export const addToCart = async (req, res) => {
         total: food.price * quantity,
       });
     }
-    cart.totalQuantity = cart.items.reduce(
-      (acc, item) => acc + item.quantity,
-      0
-    );
-    cart.totalPrice = cart.items.reduce((acc, item) => acc + item.total, 0);
 
     await cart.save();
-    //populae the  food before sending the response
+
     const populatedCart = await Cart.findById(cart._id).populate(
       "items.food",
       "title imageUrl price"
     );
+
     res.status(200).json({
       success: true,
       message: "Food added to cart successfully",
       cart: populatedCart,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      success: false,
-      message: "Error occured while adding the items in cart",
-    });
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error adding item to cart" });
   }
 };
 
-//update cart item quantity
+// Update cart item
 export const updateCartItem = async (req, res) => {
-  const { foodId, quantity } = req.body;
-  try {
-    const cart = await Cart.findOne({ user: req.user.id });
-    //validation
-    if (!cart) {
-      return res.status(404).json({
+  const userId = req.user?.id;
+  const { foodId, quantity, guestId } = req.body;
+
+  if (!userId && !guestId) {
+    return res
+      .status(401)
+      .json({
         success: false,
-        message: "Cart not found",
+        message: "Unauthorized: missing user ID or guest ID",
       });
-    }
+  }
+
+  try {
+    const cart = await Cart.findOne(userId ? { user: userId } : { guestId });
+    if (!cart)
+      return res
+        .status(404)
+        .json({ success: false, message: "Cart not found" });
 
     const itemIndex = cart.items.findIndex(
       (item) => item.food.toString() === foodId
     );
-    if (itemIndex > -1) {
-      //food already in the cart, update quantity
-      cart.items[itemIndex].quantity = quantity;
-      cart.items[itemIndex].total =
-        cart.items[itemIndex].quantity * cart.items[itemIndex].price;
-    } else {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found in cart",
-      });
-    }
-    cart.totalQuantity = cart.items.reduce(
-      (acc, item) => acc + item.quantity,
-      0
-    );
-    cart.totalPrice = cart.items.reduce((acc, item) => acc + item.total, 0);
+    if (itemIndex === -1)
+      return res
+        .status(404)
+        .json({ success: false, message: "Item not in cart" });
+
+    cart.items[itemIndex].quantity = quantity;
+    cart.items[itemIndex].total = quantity * cart.items[itemIndex].price;
 
     await cart.save();
-    //populae the  food before sending the response
+
     const populatedCart = await Cart.findById(cart._id).populate(
       "items.food",
       "title imageUrl price"
     );
+
     res.status(200).json({
       success: true,
-      message: "Food item updated successfully",
+      message: "Cart item updated successfully",
       cart: populatedCart,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      success: false,
-      message: "Error occured while updated  cart item",
-    });
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error updating cart item" });
   }
 };
 
-//Removing items from the cart
+// Remove from cart
 export const removeFromCart = async (req, res) => {
-  const { foodId } = req.body;
-  try {
-    const cart = await Cart.findOne({ user: req.user.id });
-    if (!cart) {
-      return res.status(404).json({
+  const userId = req.user?.id;
+  const { foodId, guestId } = req.body;
+
+  if (!userId && !guestId) {
+    return res
+      .status(401)
+      .json({
         success: false,
-        message: "Cart not found",
+        message: "Unauthorized: missing user ID or guest ID",
       });
-    }
+  }
+
+  try {
+    const cart = await Cart.findOne(userId ? { user: userId } : { guestId });
+    if (!cart)
+      return res
+        .status(404)
+        .json({ success: false, message: "Cart not found" });
+
     cart.items = cart.items.filter((item) => item.food.toString() !== foodId);
-    cart.totalQuantity = cart.items.reduce(
-      (acc, item) => acc + item.quantity,
-      0
-    );
-    cart.totalPrice = cart.items.reduce((acc, item) => acc + item.total, 0);
 
     await cart.save();
-    //populae the  food before sending the response
-    const populatedCart = await Cart.findById(cart._id).populate("items.food");
+
+    const populatedCart = await Cart.findById(cart._id).populate(
+      "items.food",
+      "title imageUrl price"
+    );
+
     res.status(200).json({
       success: true,
       message: "Item removed from cart",
       cart: populatedCart,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      success: false,
-      message: "Error occured while updated  cart item",
-    });
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error removing item from cart" });
   }
 };
 
-//clear entire cart
+// Clear entire cart
 export const clearCart = async (req, res) => {
-  try {
-    const cart = await Cart.findOne({ user: req.user.id });
-    if (!cart) {
-      return res.status(404).json({
+  const userId = req.user?.id;
+  const { guestId } = req.body;
+
+  if (!userId && !guestId) {
+    return res
+      .status(401)
+      .json({
         success: false,
-        message: "Cart not found",
+        message: "Unauthorized: missing user ID or guest ID",
       });
-    }
-    await Cart.findOneAndUpdate(
-      { user: req.user.id },
-      {
-        $set: {
-          items: [],
-          totalQuantity: 0,
-          totalPrice: 0,
-        },
-      },
-      { new: true }
-    );
+  }
+
+  try {
+    const cart = await Cart.findOne(userId ? { user: userId } : { guestId });
+    if (!cart)
+      return res
+        .status(404)
+        .json({ success: false, message: "Cart not found" });
+
+    cart.items = [];
+
+    await cart.save();
+
     res.status(200).json({
       success: true,
       message: "Cart cleared successfully",
       cart,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      success: false,
-      message: "Error occured while clearing  whole cart",
-    });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error clearing cart" });
   }
 };

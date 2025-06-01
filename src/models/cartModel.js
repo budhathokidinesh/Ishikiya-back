@@ -5,7 +5,11 @@ const cartSchema = new Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // for logged-in users
+    },
+    guestId: {
+      type: String,
+      required: false, // for guest users (stored in cookies/localStorage)
     },
     items: [
       {
@@ -46,9 +50,15 @@ const cartSchema = new Schema(
   }
 );
 
+// Auto calculate totals before saving
 cartSchema.pre("save", function (next) {
   this.totalQuantity = this.items.reduce((acc, item) => acc + item.quantity, 0);
   this.totalPrice = this.items.reduce((acc, item) => acc + item.total, 0);
   next();
 });
+
+// Indexes for performance
+cartSchema.index({ user: 1 });
+cartSchema.index({ guestId: 1 });
+
 export default mongoose.model("Cart", cartSchema);

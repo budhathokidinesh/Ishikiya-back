@@ -5,17 +5,24 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 //placing order
 export const orderController = async (req, res) => {
-  const { cart, paymentMethod } = req.body;
-  const userId = req.user.id;
+  const { cart, paymentMethod, guestId } = req.body;
+  const userId = req.user?.id;
 
+  //this is validation of cart
+  if (!cart || cart.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Cart cannot be empty",
+    });
+  }
+  //this is validation of userId and guestId
+  if (!userId && !guestId) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: user or guestId required",
+    });
+  }
   try {
-    if (!cart || cart.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Cart cannot be empty",
-      });
-    }
-
     // Calculate total and prepare order items
     const stripeLineItems = [];
     for (const item of cart) {
@@ -48,7 +55,8 @@ export const orderController = async (req, res) => {
       success_url: `${process.env.FRONTEND_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL}/cancel`,
       metadata: {
-        userId: userId.toString(),
+        userId: userId ? userId.toString() : "",
+        guestId: guestId || "",
         cart: JSON.stringify(cart),
       },
     });

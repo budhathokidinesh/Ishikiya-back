@@ -7,10 +7,11 @@ import {
   orderStatusController,
 } from "../../controllers/order/ordersController.js";
 import { adminMiddleware } from "../../middlewares/adminMiddleware.js";
+import { optionalAuth } from "../../middlewares/optionalAuthMiddleware.js";
 
 const router = express.Router();
 //place order(user)
-router.post("/placeOrder", authMiddleware, orderController);
+router.post("/placeOrder", optionalAuth, orderController);
 //this is for changing order status(admin)
 router.put(
   "/orderStatus/:id",

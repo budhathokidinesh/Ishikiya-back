@@ -13,19 +13,20 @@ export const stripeWebhookHandler = async (req, res) => {
     event = stripe.webhooks.constructEvent(
       req.body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET // from your Stripe dashboard
+      process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
     console.error("⚠️ Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle only completed payments
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
-    const userId = session.metadata.userId;
-    const cart = JSON.parse(session.metadata.cart);
+    const cart = JSON.parse(session.metadata.cart || "[]");
+    const userId = session.metadata.userId || null;
+    const guestId = session.metadata.guestId || null;
+    const guestInfo = JSON.parse(session.metadata.guestInfo || "{}");
 
     try {
       let totalAmount = 0;
@@ -34,7 +35,7 @@ export const stripeWebhookHandler = async (req, res) => {
       for (const item of cart) {
         const food = await Food.findById(item.foodId);
         if (!food) {
-          console.warn(`Food item not found in webhook: ${item.foodId}`);
+          console.warn(`Food item not found: ${item.foodId}`);
           continue;
         }
 
@@ -42,7 +43,7 @@ export const stripeWebhookHandler = async (req, res) => {
         totalAmount += itemTotal;
 
         orderItems.push({
-          food: item.foodId,
+          food: food._id,
           quantity: item.quantity,
           price: food.price,
         });
@@ -56,17 +57,19 @@ export const stripeWebhookHandler = async (req, res) => {
           status: "Paid",
           transitionId: session.payment_intent,
         },
-        buyer: userId,
+        buyer: userId || null,
+        guestId: guestId || null,
+        guestInfo: guestInfo || null, // Optional: if you're storing guest info
         status: "Order Placed",
       });
 
-      console.log("✅ Order successfully created after payment");
-      res.status(200).json({ received: true });
+      console.log("✅ Order created successfully (user or guest)");
+      return res.status(200).json({ received: true });
     } catch (err) {
-      console.error("❌ Error creating order from webhook:", err);
-      res.status(500).send("Error processing order");
+      console.error("❌ Error saving order:", err);
+      return res.status(500).send("Failed to process order");
     }
-  } else {
-    res.status(200).json({ received: true }); // For unhandled events
   }
+
+  res.status(200).json({ received: true }); // for other event types
 };

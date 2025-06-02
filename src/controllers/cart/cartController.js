@@ -7,12 +7,10 @@ export const getCart = async (req, res) => {
   const guestId = req.query.guestId;
 
   if (!userId && !guestId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "Unauthorized: missing user ID or guest ID",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: missing user ID or guest ID",
+    });
   }
 
   try {
@@ -39,12 +37,10 @@ export const addToCart = async (req, res) => {
   const { foodId, quantity, guestId } = req.body;
 
   if (!userId && !guestId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "Unauthorized: missing user ID or guest ID",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: missing user ID or guest ID",
+    });
   }
 
   try {
@@ -108,12 +104,10 @@ export const updateCartItem = async (req, res) => {
   const { foodId, quantity, guestId } = req.body;
 
   if (!userId && !guestId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "Unauthorized: missing user ID or guest ID",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: missing user ID or guest ID",
+    });
   }
 
   try {
@@ -160,12 +154,10 @@ export const removeFromCart = async (req, res) => {
   const { foodId, guestId } = req.body;
 
   if (!userId && !guestId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "Unauthorized: missing user ID or guest ID",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: missing user ID or guest ID",
+    });
   }
 
   try {
@@ -203,12 +195,10 @@ export const clearCart = async (req, res) => {
   const { guestId } = req.body;
 
   if (!userId && !guestId) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "Unauthorized: missing user ID or guest ID",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: missing user ID or guest ID",
+    });
   }
 
   try {
@@ -232,3 +222,84 @@ export const clearCart = async (req, res) => {
     res.status(500).json({ success: false, message: "Error clearing cart" });
   }
 };
+
+//This is synchronizing the cart items
+
+export const syncGuestCartToUser = async (req, res) => {
+  const userId = req.user?.id;
+  const { guestId } = req.body;
+
+  if (!userId || !guestId) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing user ID or guest ID for cart sync",
+    });
+  }
+
+  try {
+    const guestCart = await Cart.findOne({ guestId });
+    const userCart = await Cart.findOne({ user: userId });
+
+    if (!guestCart || guestCart.items.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "No guest cart to sync" });
+    }
+
+    if (!userCart) {
+      // If user has no cart, assign guest cart to user
+      guestCart.user = userId;
+      guestCart.guestId = undefined;
+      await guestCart.save();
+      return res.status(200).json({
+        success: true,
+        message: "Guest cart assigned to user",
+        cart: guestCart,
+      });
+    }
+
+    // Merge items if both carts exist
+    const mergedItems = mergeCartItems(userCart.items, guestCart.items);
+
+    userCart.items = mergedItems;
+    await userCart.save();
+
+    // Delete the guest cart
+    await Cart.deleteOne({ guestId });
+
+    const populatedCart = await Cart.findById(userCart._id).populate(
+      "items.food",
+      "title imageUrl price"
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Guest cart merged into user cart",
+      cart: populatedCart,
+    });
+  } catch (error) {
+    console.error("Cart sync error:", error);
+    res.status(500).json({ success: false, message: "Error syncing carts" });
+  }
+};
+
+function mergeCartItems(userItems, guestItems) {
+  const map = new Map();
+
+  for (const item of userItems) {
+    map.set(item.food.toString(), { ...item.toObject() });
+  }
+
+  for (const item of guestItems) {
+    const foodId = item.food.toString();
+    if (map.has(foodId)) {
+      const existing = map.get(foodId);
+      existing.quantity += item.quantity;
+      existing.total = existing.quantity * existing.price;
+    } else {
+      map.set(foodId, { ...item.toObject() });
+    }
+  }
+
+  return Array.from(map.values());
+}

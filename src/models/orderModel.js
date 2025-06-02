@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const OrderSchema = new mongoose.Schema(
   {
     items: [
@@ -34,6 +35,15 @@ const OrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: false,
+    },
+    guestId: {
+      type: String, // Stored from localStorage or randomUUID
+      required: false,
+    },
+    guestInfo: {
+      name: { type: String },
+      email: { type: String },
+      phone: { type: String },
     },
     orderStatus: {
       type: String,

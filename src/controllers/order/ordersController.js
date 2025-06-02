@@ -5,25 +5,24 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 //placing order
 export const orderController = async (req, res) => {
-  const { cart, paymentMethod, guestId } = req.body;
+  const { cart, paymentMethod, guestId, guestInfo } = req.body;
   const userId = req.user?.id;
 
-  //this is validation of cart
   if (!cart || cart.length === 0) {
     return res.status(400).json({
       success: false,
       message: "Cart cannot be empty",
     });
   }
-  //this is validation of userId and guestId
+
   if (!userId && !guestId) {
     return res.status(401).json({
       success: false,
       message: "Unauthorized: user or guestId required",
     });
   }
+
   try {
-    // Calculate total and prepare order items
     const stripeLineItems = [];
     for (const item of cart) {
       const food = await Food.findById(item.foodId);
@@ -40,13 +39,11 @@ export const orderController = async (req, res) => {
           product_data: {
             name: food.title,
           },
-          unit_amount: Math.round(food.price * 100), // Convert to cents
+          unit_amount: Math.round(food.price * 100),
         },
         quantity: item.quantity,
       });
     }
-
-    // For Stripe payments
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -57,14 +54,15 @@ export const orderController = async (req, res) => {
       metadata: {
         userId: userId ? userId.toString() : "",
         guestId: guestId || "",
+        guestInfo: guestInfo ? JSON.stringify(guestInfo) : "",
         cart: JSON.stringify(cart),
       },
     });
 
     return res.status(200).json({
       success: true,
-      sessionId: session.id, // Include sessionId
-      url: session.url, // Include Stripe URL
+      sessionId: session.id,
+      url: session.url,
       message: "Stripe session created",
     });
   } catch (error) {
@@ -75,6 +73,7 @@ export const orderController = async (req, res) => {
     });
   }
 };
+
 //changing order status
 export const orderStatusController = async (req, res) => {
   try {
@@ -152,11 +151,23 @@ export const fetchAllOrdersAdmin = async (req, res) => {
       })
       .sort({ createdAt: -1 })
       .lean();
+    const ordersWithCustomerInfo = orders.map((order) => ({
+      ...order,
+      customerName: order.buyer
+        ? order.buyer.name
+        : order.guestInfo?.name || "Guest",
+      customerPhone: order.buyer
+        ? order.buyer.phone
+        : order.guestInfo?.phone || "",
+      customerEmail: order.buyer
+        ? order.buyer.email
+        : order.guestInfo?.email || "",
+    }));
 
     res.status(200).json({
       success: true,
       message: "All orders fetched successfully",
-      orders,
+      orders: ordersWithCustomerInfo,
     });
   } catch (error) {
     console.log(error);

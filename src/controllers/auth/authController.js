@@ -48,6 +48,7 @@ export const registerUser = async (req, res) => {
     await newUser.save();
     //this is for sending otp for verification email
     //transporter
+    //This need to be in seperate controller for handling all the email related controller
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
       port: 587,

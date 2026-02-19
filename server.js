@@ -20,7 +20,7 @@ import webhookRoute from "./src/routes/webhook/webhookRoute.js";
 //middlewares
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["https://ishikiya-front.vercel.app"],
     credentials: true,
   })
 );

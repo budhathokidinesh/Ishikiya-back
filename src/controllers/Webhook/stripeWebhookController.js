@@ -5,7 +5,6 @@ import Food from "../../models/foodModel.js";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const stripeWebhookHandler = async (req, res) => {
-  console.log("➡️ Webhook received");
   const sig = req.headers["stripe-signature"];
   let event;
 
@@ -59,11 +58,10 @@ export const stripeWebhookHandler = async (req, res) => {
         },
         buyer: userId || null,
         guestId: guestId || null,
-        guestInfo: guestInfo || null, // Optional: if you're storing guest info
+        guestInfo: guestInfo || null,
         status: "Order Placed",
       });
 
-      console.log("✅ Order created successfully (user or guest)");
       return res.status(200).json({ received: true });
     } catch (err) {
       console.error("❌ Error saving order:", err);

@@ -152,12 +152,14 @@ export const loginUser = async (req, res) => {
     });
     //removing password before sending bak
     const { password: pass, ...rest } = user._doc;
+    const isProduction = process.env.NODE_ENV === "production";
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: false,
-        sameSite: "Strict",
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
         path: "/",
+        maxAge: 24 * 60 * 60 * 1000,
       })
       .status(200)
       .json({
@@ -179,9 +181,9 @@ export const loginUser = async (req, res) => {
 export const logoutUser = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: false,
+    secure: process.env.NODE_ENV === "production",
     path: "/",
-    sameSite: "Strict",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
 
   res.json({

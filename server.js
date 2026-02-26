@@ -38,6 +38,7 @@ app.use(cookieparser());
 //     express.json()(req, res, next);
 //   }
 // });
+app.use(express.json());
 app.use(morgan("dev"));
 
 //endpoit APIs(auth)

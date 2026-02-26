@@ -1,5 +1,10 @@
 import express from "express";
 const app = express();
+app.use(
+  "/api/v1/webhook",
+  express.raw({ type: "application/json" }),
+  webhookRoute
+);
 const PORT = process.env.PORT || 8000;
 
 import cors from "cors";
@@ -26,13 +31,13 @@ app.use(
 );
 app.use(cookieparser());
 //for webhook
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/v1/webhook") {
-    next(); // skip express.json() for webhook
-  } else {
-    express.json()(req, res, next);
-  }
-});
+// app.use((req, res, next) => {
+//   if (req.originalUrl === "/api/v1/webhook") {
+//     next(); // skip express.json() for webhook
+//   } else {
+//     express.json()(req, res, next);
+//   }
+// });
 app.use(morgan("dev"));
 
 //endpoit APIs(auth)

@@ -57,7 +57,7 @@ app.use("/api/admin", adminRoutes);
 //end point for image
 app.use("/api/v1/all", imageRoutes);
 //end point for webhook
-app.use("/api/v1/webhook", webhookRoute);
+// app.use("/api/v1/webhook", webhookRoute);
 
 //this is for health check
 app.get("/", (req, res) => {

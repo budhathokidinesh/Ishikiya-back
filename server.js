@@ -1,17 +1,8 @@
 import express from "express";
-const app = express();
-app.use(
-  "/api/v1/webhook",
-  express.raw({ type: "application/json" }),
-  webhookRoute
-);
-const PORT = process.env.PORT || 8000;
-
 import cors from "cors";
 import cookieparser from "cookie-parser";
 import morgan from "morgan";
 import { dbConnect } from "./src/config/dbConfig.js";
-
 //importing routes
 import authRoutes from "./src/routes/auth/authRoute.js";
 import adminRoutes from "./src/routes/admin/adminRoutes.js";
@@ -21,6 +12,15 @@ import orderRoutes from "./src/routes/order/orderRoute.js";
 import imageRoutes from "./src/routes/image/imageRoute.js";
 import cartRoutes from "./src/routes/cart/cartRoutes.js";
 import webhookRoute from "./src/routes/webhook/webhookRoute.js";
+const app = express();
+const PORT = process.env.PORT || 8000;
+
+//this is for webhook
+app.use(
+  "/api/v1/webhook",
+  express.raw({ type: "application/json" }),
+  webhookRoute
+);
 
 //middlewares
 app.use(

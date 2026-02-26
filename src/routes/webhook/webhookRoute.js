@@ -3,10 +3,6 @@ import { stripeWebhookHandler } from "../../controllers/Webhook/stripeWebhookCon
 
 const router = express.Router();
 
-router.post(
-  "/",
-  express.raw({ type: "application/json" }),
-  stripeWebhookHandler
-);
+router.post("/", stripeWebhookHandler);
 
 export default router;
